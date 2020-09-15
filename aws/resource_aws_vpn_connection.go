@@ -119,6 +119,12 @@ func resourceAwsVpnConnection() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"tunnel1_dpd_timeout_action": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateVpnConnectionTunnelDpdTimeoutAction(),
+			},
+
 			"tunnel1_dpd_timeout_seconds": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -197,6 +203,12 @@ func resourceAwsVpnConnection() *schema.Resource {
 				ValidateFunc: validateVpnConnectionTunnelReplayWindowSize(),
 			},
 
+			"tunnel1_startup_action": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateVpnConnectionTunnelStartupAction(),
+			},
+
 			"tunnel1_inside_cidr": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -212,6 +224,12 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateVpnConnectionTunnelPreSharedKey(),
+			},
+
+			"tunnel2_dpd_timeout_action": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateVpnConnectionTunnelDpdTimeoutAction(),
 			},
 
 			"tunnel2_dpd_timeout_seconds": {
@@ -290,6 +308,12 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ValidateFunc: validateVpnConnectionTunnelReplayWindowSize(),
+			},
+
+			"tunnel2_startup_action": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateVpnConnectionTunnelStartupAction(),
 			},
 
 			"tunnel2_inside_cidr": {
@@ -438,6 +462,14 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 	// Fill the tunnel options for the EC2 API
 	options := []*ec2.VpnTunnelOptionsSpecification{
 		{}, {},
+	}
+
+	if v, ok := d.GetOk("tunnel1_dpd_timeout_action"); ok {
+		options[0].DPDTimeoutAction = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("tunnel2_dpd_timeout_action"); ok {
+		options[1].DPDTimeoutAction = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("tunnel1_dpd_timeout_seconds"); ok {
@@ -598,6 +630,14 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 
 	if v, ok := d.GetOk("tunnel2_replay_window_size"); ok {
 		options[1].ReplayWindowSize = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("tunnel1_startup_action"); ok {
+		options[0].StartupAction = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("tunnel2_startup_action"); ok {
+		options[1].StartupAction = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("tunnel1_inside_cidr"); ok {
@@ -833,6 +873,16 @@ func resourceAwsVpnConnectionUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 	vpnConnectionID := d.Id()
 
+	if d.HasChange("tunnel1_dpd_timeout_action") {
+		tun1Changed = true
+		options[0].DPDTimeoutAction = aws.String(d.Get("tunnel1_dpd_timeout_action").(string))
+	}
+
+	if d.HasChange("tunnel2_dpd_timeout_action") {
+		tun2Changed = true
+		options[1].DPDTimeoutAction = aws.String(d.Get("tunnel2_dpd_timeout_action").(string))
+	}
+
 	if d.HasChange("tunnel1_dpd_timeout_seconds") {
 		tun1Changed = true
 		options[0].DPDTimeoutSeconds = aws.Int64(int64(d.Get("tunnel1_dpd_timeout_seconds").(int)))
@@ -1017,6 +1067,16 @@ func resourceAwsVpnConnectionUpdate(d *schema.ResourceData, meta interface{}) er
 	if d.HasChange("tunnel2_replay_window_size") {
 		tun2Changed = true
 		options[1].ReplayWindowSize = aws.Int64(int64(d.Get("tunnel2_replay_window_size").(int)))
+	}
+
+	if d.HasChange("tunnel1_startup_action") {
+		tun1Changed = true
+		options[0].StartupAction = aws.String(d.Get("tunnel1_startup_action").(string))
+	}
+
+	if d.HasChange("tunnel2_startup_action") {
+		tun2Changed = true
+		options[1].StartupAction = aws.String(d.Get("tunnel2_startup_action").(string))
 	}
 
 	if tun1Changed {
@@ -1237,6 +1297,18 @@ func validateVpnConnectionTunnelInsideCIDR() schema.SchemaValidateFunc {
 	)
 }
 
+func validateVpnConnectionTunnelDpdTimeoutAction() schema.SchemaValidateFunc {
+	allowedDpdTimeoutAction := []string{
+		"clear",
+		"none",
+		"restart",
+	}
+
+	return validation.All(
+		validation.StringInSlice(allowedDpdTimeoutAction, false),
+	)
+}
+
 func validateVpnConnectionTunnelDpdTimeoutSeconds() schema.SchemaValidateFunc {
 	return validation.All(
 		validation.IntBetween(0, 30),
@@ -1270,5 +1342,16 @@ func validateVpnConnectionTunnelRekeyMarginTimeSeconds() schema.SchemaValidateFu
 func validateVpnConnectionTunnelReplayWindowSize() schema.SchemaValidateFunc {
 	return validation.All(
 		validation.IntBetween(64, 2048),
+	)
+}
+
+func validateVpnConnectionTunnelStartupAction() schema.SchemaValidateFunc {
+	allowedStartupAction := []string{
+		"add",
+		"start",
+	}
+
+	return validation.All(
+		validation.StringInSlice(allowedStartupAction, false),
 	)
 }
