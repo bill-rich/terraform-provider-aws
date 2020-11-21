@@ -112,11 +112,47 @@ func resourceAwsVpnConnection() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"local_ipv4_network_cidr": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateLocalIpv4NetworkCidr(),
+			},
+
+			"local_ipv6_network_cidr": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateLocalIpv6NetworkCidr(),
+			},
+
+			"remote_ipv4_network_cidr": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateLocalIpv4NetworkCidr(),
+			},
+
+			"remote_ipv6_network_cidr": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateLocalIpv6NetworkCidr(),
+			},
+
 			"static_routes_only": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+
+			"tunnel_inside_ip_version": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateTunnelInsideIPVersion(),
 			},
 
 			"tunnel1_dpd_timeout_action": {
@@ -215,6 +251,14 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateVpnConnectionTunnelInsideCIDR(),
+			},
+
+			"tunnel1_inside_ipv6_cidr": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateVpnConnectionTunnelInsideIpv6CIDR(),
 			},
 
 			"tunnel1_preshared_key": {
@@ -322,6 +366,14 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateVpnConnectionTunnelInsideCIDR(),
+			},
+
+			"tunnel2_inside_ipv6_cidr": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateVpnConnectionTunnelInsideIpv6CIDR(),
 			},
 
 			"tunnel2_preshared_key": {
@@ -648,6 +700,14 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 		options[1].TunnelInsideCidr = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("tunnel1_inside_ipv6_cidr"); ok {
+		options[0].TunnelInsideIpv6Cidr = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("tunnel2_inside_ipv6_cidr"); ok {
+		options[1].TunnelInsideIpv6Cidr = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("tunnel1_preshared_key"); ok {
 		options[0].PreSharedKey = aws.String(v.(string))
 	}
@@ -656,11 +716,39 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 		options[1].PreSharedKey = aws.String(v.(string))
 	}
 
-	connectOpts := &ec2.VpnConnectionOptionsSpecification{
-		EnableAcceleration: aws.Bool(d.Get("enable_acceleration").(bool)),
-		StaticRoutesOnly:   aws.Bool(d.Get("static_routes_only").(bool)),
-		TunnelOptions:      options,
+	var connectOpts *ec2.VpnConnectionOptionsSpecification = new(ec2.VpnConnectionOptionsSpecification)
+	ipv := d.Get("tunnel_inside_ip_version").(string)
+	if ipv == "ipv4" {
+		if v, ok := d.GetOk("local_ipv4_network_cidr"); ok {
+			connectOpts.LocalIpv4NetworkCidr = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("remote_ipv4_network_cidr"); ok {
+			connectOpts.RemoteIpv4NetworkCidr = aws.String(v.(string))
+		}
+
+		connectOpts.TunnelInsideIpVersion = aws.String(ipv)
+	} else if ipv == "ipv6" {
+		if v, ok := d.GetOk("local_ipv6_network_cidr"); ok {
+			connectOpts.LocalIpv6NetworkCidr = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("remote_ipv6_network_cidr"); ok {
+			connectOpts.RemoteIpv6NetworkCidr = aws.String(v.(string))
+		}
+
+		connectOpts.TunnelInsideIpVersion = aws.String(ipv)
 	}
+
+	if v, ok := d.GetOk("enable_acceleration"); ok {
+		connectOpts.EnableAcceleration = aws.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("static_routes_only"); ok {
+		connectOpts.StaticRoutesOnly = aws.Bool(v.(bool))
+	}
+
+	connectOpts.TunnelOptions = options
 
 	createOpts := &ec2.CreateVpnConnectionInput{
 		CustomerGatewayId: aws.String(d.Get("customer_gateway_id").(string)),
@@ -809,13 +897,38 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 			return err
 		}
 
+		if err := d.Set("local_ipv4_network_cidr", vpnConnection.Options.LocalIpv4NetworkCidr); err != nil {
+			return err
+		}
+
+		if err := d.Set("local_ipv6_network_cidr", vpnConnection.Options.LocalIpv6NetworkCidr); err != nil {
+			return err
+		}
+
+		if err := d.Set("remote_ipv4_network_cidr", vpnConnection.Options.RemoteIpv4NetworkCidr); err != nil {
+			return err
+		}
+
+		if err := d.Set("remote_ipv6_network_cidr", vpnConnection.Options.RemoteIpv6NetworkCidr); err != nil {
+			return err
+		}
+
 		if err := d.Set("static_routes_only", vpnConnection.Options.StaticRoutesOnly); err != nil {
+			return err
+		}
+
+		if err := d.Set("tunnel_inside_ip_version", vpnConnection.Options.TunnelInsideIpVersion); err != nil {
 			return err
 		}
 	} else {
 		//If there no Options on the connection then we do not support it
 		d.Set("enable_acceleration", false)
+		d.Set("local_ipv4_network_cidr", "")
+		d.Set("local_ipv6_network_cidr", "")
+		d.Set("remote_ipv4_network_cidr", "")
+		d.Set("remote_ipv6_network_cidr", "")
 		d.Set("static_routes_only", false)
+		d.Set("tunnel_inside_ip_version", "")
 	}
 
 	// Set read only attributes.
@@ -871,7 +984,43 @@ func resourceAwsVpnConnectionUpdate(d *schema.ResourceData, meta interface{}) er
 	options := []*ec2.ModifyVpnTunnelOptionsSpecification{
 		{}, {},
 	}
+
+	var connOpts *ec2.ModifyVpnConnectionOptionsInput = new(ec2.ModifyVpnConnectionOptionsInput)
+	connChanged := false
+
 	vpnConnectionID := d.Id()
+
+	if d.HasChange("local_ipv4_network_cidr") {
+		connChanged = true
+		connOpts.LocalIpv4NetworkCidr = aws.String(d.Get("local_ipv4_network_cidr").(string))
+	}
+
+	if d.HasChange("local_ipv6_network_cidr") {
+		connChanged = true
+		connOpts.LocalIpv6NetworkCidr = aws.String(d.Get("local_ipv6_network_cidr").(string))
+	}
+
+	if d.HasChange("remote_ipv4_network_cidr") {
+		connChanged = true
+		connOpts.RemoteIpv4NetworkCidr = aws.String(d.Get("remote_ipv4_network_cidr").(string))
+	}
+
+	if d.HasChange("remote_ipv6_network_cidr") {
+		connChanged = true
+		connOpts.RemoteIpv6NetworkCidr = aws.String(d.Get("remote_ipv6_network_cidr").(string))
+	}
+
+	if connChanged {
+		connOpts.VpnConnectionId = aws.String(vpnConnectionID)
+		_, err := conn.ModifyVpnConnectionOptions(connOpts)
+		if err != nil {
+			return fmt.Errorf("Error modifying vpn connection options: %s", err)
+		}
+
+		if err := waitForEc2VpnConnectionAvailableWhenModifying(conn, vpnConnectionID); err != nil {
+			return fmt.Errorf("error waiting for VPN connection (%s) to become available: %s", vpnConnectionID, err)
+		}
+	}
 
 	if d.HasChange("tunnel1_dpd_timeout_action") {
 		tun1Changed = true
@@ -1279,6 +1428,7 @@ func validateVpnConnectionTunnelPreSharedKey() schema.SchemaValidateFunc {
 }
 
 // https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_VpnTunnelOptionsSpecification.html
+// https://docs.aws.amazon.com/vpn/latest/s2svpn/VPNTunnels.html
 func validateVpnConnectionTunnelInsideCIDR() schema.SchemaValidateFunc {
 	disallowedCidrs := []string{
 		"169.254.0.0/30",
@@ -1297,21 +1447,52 @@ func validateVpnConnectionTunnelInsideCIDR() schema.SchemaValidateFunc {
 	)
 }
 
+func validateVpnConnectionTunnelInsideIpv6CIDR() schema.SchemaValidateFunc {
+	return validation.All(
+		validation.IsCIDRNetwork(126, 126),
+		validation.StringMatch(regexp.MustCompile(`^fd00:`), "must be within fd00::/8"),
+	)
+}
+
+func validateLocalIpv4NetworkCidr() schema.SchemaValidateFunc {
+	return validation.All(
+		validation.IsCIDRNetwork(32, 32),
+	)
+}
+
+func validateLocalIpv6NetworkCidr() schema.SchemaValidateFunc {
+	return validation.All(
+		validation.IsCIDRNetwork(128, 128),
+	)
+}
+
 func validateVpnConnectionTunnelDpdTimeoutAction() schema.SchemaValidateFunc {
-	allowedDpdTimeoutAction := []string{
+	allowedDpdTimeoutActions := []string{
 		"clear",
 		"none",
 		"restart",
 	}
 
 	return validation.All(
-		validation.StringInSlice(allowedDpdTimeoutAction, false),
+		validation.StringInSlice(allowedDpdTimeoutActions, false),
+	)
+}
+
+func validateTunnelInsideIPVersion() schema.SchemaValidateFunc {
+	allowedIPVersions := []string{
+		"ipv4",
+		"ipv6",
+	}
+
+	return validation.All(
+		validation.StringInSlice(allowedIPVersions, false),
 	)
 }
 
 func validateVpnConnectionTunnelDpdTimeoutSeconds() schema.SchemaValidateFunc {
 	return validation.All(
-		validation.IntBetween(0, 30),
+		//validation.IntBetween(0, 30)
+		validation.IntAtLeast(30), // Must be 30 or higher
 	)
 }
 
