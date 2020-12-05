@@ -718,17 +718,7 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 
 	var connectOpts *ec2.VpnConnectionOptionsSpecification = new(ec2.VpnConnectionOptionsSpecification)
 	ipv := d.Get("tunnel_inside_ip_version").(string)
-	if ipv == "ipv4" {
-		if v, ok := d.GetOk("local_ipv4_network_cidr"); ok {
-			connectOpts.LocalIpv4NetworkCidr = aws.String(v.(string))
-		}
-
-		if v, ok := d.GetOk("remote_ipv4_network_cidr"); ok {
-			connectOpts.RemoteIpv4NetworkCidr = aws.String(v.(string))
-		}
-
-		connectOpts.TunnelInsideIpVersion = aws.String(ipv)
-	} else if ipv == "ipv6" {
+	if ipv == "ipv6" {
 		if v, ok := d.GetOk("local_ipv6_network_cidr"); ok {
 			connectOpts.LocalIpv6NetworkCidr = aws.String(v.(string))
 		}
@@ -738,6 +728,16 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		connectOpts.TunnelInsideIpVersion = aws.String(ipv)
+	} else {
+		if v, ok := d.GetOk("local_ipv4_network_cidr"); ok {
+			connectOpts.LocalIpv4NetworkCidr = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("remote_ipv4_network_cidr"); ok {
+			connectOpts.RemoteIpv4NetworkCidr = aws.String(v.(string))
+		}
+
+		connectOpts.TunnelInsideIpVersion = aws.String("ipv4")
 	}
 
 	if v, ok := d.GetOk("enable_acceleration"); ok {
