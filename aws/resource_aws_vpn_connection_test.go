@@ -571,8 +571,8 @@ resource "aws_customer_gateway" "customer_gateway" {
 }
 
 resource "aws_vpn_connection" "test" {
-  vpn_gateway_id      = "${aws_vpn_gateway.vpn_gateway.id}"
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
+  vpn_gateway_id      = aws_vpn_gateway.vpn_gateway.id
+  customer_gateway_id = aws_customer_gateway.customer_gateway.id
   type                = "ipsec.1"
   static_routes_only  = true
 }
@@ -599,8 +599,8 @@ resource "aws_customer_gateway" "customer_gateway" {
 }
 
 resource "aws_vpn_connection" "test" {
-  vpn_gateway_id      = "${aws_vpn_gateway.vpn_gateway.id}"
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
+  vpn_gateway_id      = aws_vpn_gateway.vpn_gateway.id
+  customer_gateway_id = aws_customer_gateway.customer_gateway.id
   type                = "ipsec.1"
   static_routes_only  = false
   enable_acceleration = false
@@ -620,8 +620,8 @@ resource "aws_customer_gateway" "customer_gateway" {
   }
 }
 resource "aws_vpn_connection" "test" {
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
-  transit_gateway_id  = "${aws_ec2_transit_gateway.test.id}"
+  customer_gateway_id = aws_customer_gateway.customer_gateway.id
+  transit_gateway_id  = aws_ec2_transit_gateway.test.id
   type                = "ipsec.1"
   static_routes_only  = false
   enable_acceleration = true
@@ -641,8 +641,8 @@ resource "aws_customer_gateway" "customer_gateway" {
   }
 }
 resource "aws_vpn_connection" "test" {
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
-  transit_gateway_id  = "${aws_ec2_transit_gateway.test.id}"
+  customer_gateway_id = aws_customer_gateway.customer_gateway.id
+  transit_gateway_id  = aws_ec2_transit_gateway.test.id
   type                = "ipsec.1"
   static_routes_only  = false
   enable_acceleration = false
@@ -676,8 +676,8 @@ resource "aws_customer_gateway" "customer_gateway" {
 }
 
 resource "aws_vpn_connection" "test" {
-  vpn_gateway_id      = "${aws_vpn_gateway.vpn_gateway.id}"
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
+  vpn_gateway_id      = aws_vpn_gateway.vpn_gateway.id
+  customer_gateway_id = aws_customer_gateway.customer_gateway.id
   type                = "ipsec.1"
   static_routes_only  = false
 
@@ -702,9 +702,9 @@ resource "aws_customer_gateway" "test" {
 }
 
 resource "aws_vpn_connection" "test" {
-  customer_gateway_id = "${aws_customer_gateway.test.id}"
-  transit_gateway_id  = "${aws_ec2_transit_gateway.test.id}"
-  type                = "${aws_customer_gateway.test.type}"
+  customer_gateway_id = aws_customer_gateway.test.id
+  transit_gateway_id  = aws_ec2_transit_gateway.test.id
+  type                = aws_customer_gateway.test.type
 }
 `, rBgpAsn)
 }
@@ -766,13 +766,13 @@ resource "aws_customer_gateway" "customer_gateway" {
 }
 
 resource "aws_vpn_connection" "test" {
-  vpn_gateway_id      = "${aws_vpn_gateway.vpn_gateway.id}"
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
+  vpn_gateway_id      = aws_vpn_gateway.vpn_gateway.id
+  customer_gateway_id = aws_customer_gateway.customer_gateway.id
   type                = "ipsec.1"
   static_routes_only  = false
 
-  local_ipv4_network_cidr              = "%s"
-  remote_ipv4_network_cidr             = "%s"
+  local_ipv4_network_cidr  = "%s"
+  remote_ipv4_network_cidr = "%s"
 
   tunnel1_inside_cidr                  = "%s"
   tunnel1_preshared_key                = "%s"
@@ -869,8 +869,8 @@ resource "aws_customer_gateway" "customer_gateway" {
 }
 
 resource "aws_vpn_connection" "test" {
-  vpn_gateway_id      = "${aws_vpn_gateway.vpn_gateway.id}"
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
+  vpn_gateway_id      = aws_vpn_gateway.vpn_gateway.id
+  customer_gateway_id = aws_customer_gateway.customer_gateway.id
   type                = "ipsec.1"
   static_routes_only  = true
 
@@ -900,8 +900,8 @@ resource "aws_customer_gateway" "customer_gateway" {
 }
 
 resource "aws_vpn_connection" "test" {
-  vpn_gateway_id      = "${aws_vpn_gateway.vpn_gateway.id}"
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
+  vpn_gateway_id      = aws_vpn_gateway.vpn_gateway.id
+  customer_gateway_id = aws_customer_gateway.customer_gateway.id
   type                = "ipsec.1"
   static_routes_only  = true
 
